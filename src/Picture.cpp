@@ -20,8 +20,7 @@ Picture::Picture(const fs::path &path) {
     // allocate jpeg buffer
     unsigned char *jpegBuf = NULL;
     if ((jpegBuf = (unsigned char *)tjAlloc(jpegSize)) == NULL) {
-        setError("allocating JPEG buffer");
-        return;
+        throw std::runtime_error("Can't allocate JPEG buffer");
     }
 
     // read jpeg into buffer
@@ -34,7 +33,7 @@ Picture::Picture(const fs::path &path) {
         // get image orientation
         orientation_ = exif.Orientation;
 
-        // get date
+        // get date/time
         if (!exif.DateTime.empty()) {
             auto in = std::istringstream(exif.DateTime);
             in >> std::chrono::parse("%Y:%m:%d %H:%M:%S", meta.time);

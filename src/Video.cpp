@@ -15,15 +15,68 @@ extern "C" {
 #include <iostream>
 
 
+static int parseIso6709(const char *str, double &lat, double &lon) {
+    if (!str || !*str) return -1;
+
+    char *end = NULL;
+    double latitude  = strtod(str, &end);
+    if (end == str) return -1;          // kein gültiger Start
+
+    double longitude = strtod(end, &end);
+    if (end == str) return -1;
+
+    lat = latitude;
+    lon = longitude;
+    return 0;
+}
+
+
 Video::Video(const fs::path &path) {
+    auto &meta = metaData_;
+
     // open format context
     fmt_ctx = nullptr;
     if (avformat_open_input(&fmt_ctx, path.string().c_str(), nullptr, nullptr) < 0) {
         throw std::runtime_error("Can't open video file");
     }
 
+    // load stream info and meta data
     if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
         throw std::runtime_error("Video stream info not found");
+    }
+
+    // get creation time
+    {
+        const char *keys[] = {
+            "creation_time",
+            "date"
+        };
+        for (const char *key : keys) {
+            AVDictionaryEntry *tag = av_dict_get(fmt_ctx->metadata, key, NULL, 0);
+            if (!tag)
+                continue;
+
+            auto in = std::istringstream(tag->value);
+            in >> std::chrono::parse("%Y-%m-%dT%H:%M:%S", meta.time);
+            meta.localTime = true;
+        }
+    }
+
+    // get geo location
+    {
+        const char *keys[] = {
+            "location",
+            "location-eng",
+            "com.apple.quicktime.location.ISO6709"
+        };
+        for (const char *key : keys) {
+            AVDictionaryEntry *tag = av_dict_get(fmt_ctx->metadata, key, NULL, 0);
+            if (!tag)
+                continue;
+
+            if (parseIso6709(tag->value, meta.latitude, meta.longitude) == 0)
+                break;
+        }
     }
 
     // find video stream
