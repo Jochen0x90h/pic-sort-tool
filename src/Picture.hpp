@@ -17,6 +17,8 @@ public:
     ImageData getImageData() override;
     MetaData getMetaData() override;
 
+    static void rotate(const fs::path &path, int rotate, int mirror);
+
 protected:
     void setError(char const *action);
     void setError(char const *action, tjhandle tjInstance);

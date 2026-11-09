@@ -1,5 +1,5 @@
 #include "dst.hpp"
-#include "TinyEXIF.h" // https://github.com/cdcseacave/TinyEXIF
+#include <exiv2/exiv2.hpp>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -10,6 +10,7 @@
 
 
 namespace fs = std::filesystem;
+using namespace std::chrono_literals;
 
 // https://forum.arduino.cc/t/rtc-mit-sommerzeit/168068
 /*bool summertime_EU(int year, int month, int day, int hour, int tzHours)
@@ -27,6 +28,39 @@ namespace fs = std::filesystem;
 
 
 void fix(const fs::path &path, int timeShift, DstType dstType) {
+    // read exif
+    auto image = Exiv2::ImageFactory::open(path.string());
+    image->readMetadata();
+    auto& exif = image->exifData();
+
+    // get date/time
+    Exiv2::Exifdatum& dateTime = exif["Exif.Photo.DateTimeOriginal"];
+    if (dateTime.count() > 0) {
+        struct {
+            std::chrono::time_point<std::chrono::file_clock> time;
+        } meta;
+        
+        auto in = std::istringstream(dateTime.value().toString());
+        in >> std::chrono::parse("%Y:%m:%d %H:%M:%S", meta.time);
+    
+       // convert date/time to UTC
+        auto time = meta.time - timeShift * 1h;
+
+        // detect daylight saving time
+        auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(time);
+        auto tt = std::chrono::system_clock::to_time_t(systemTime);
+        tm t = *gmtime(&tt); // UTC
+        //tm t = *localtime(&tt);
+        if (isDst(dstType, 1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, (t.tm_wday == 0) ? 7 : t.tm_wday)) {
+            time -= 1h;
+        }
+    
+        // set file date
+        fs::last_write_time(path, time);
+    }
+
+
+    /*
     // determine jpeg size
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     int jpegSize = int(file.tellg());
@@ -63,23 +97,11 @@ void fix(const fs::path &path, int timeShift, DstType dstType) {
                     time -= 1h;
                 }
 
-                /*
-                // calc UTC time from exif time for Berlin
-                time -= 1h; // convert from MEZ to UTC assuming winter time
-                auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(time);
-                auto tt = std::chrono::system_clock::to_time_t(systemTime);
-                tm t = *gmtime(&tt); // UTC
-                //tm t = *localtime(&tt);
-                if (summertime_EU(1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, t.tm_hour, 0)) {
-                    // summer time
-                    time -= 1h;
-                }
-*/
                 // set file date
                 fs::last_write_time(path, time);
             }
         }
-    }
+    }*/
 }
 
 void doDirectory(const fs::path &path, int timeShift, DstType dstType) {

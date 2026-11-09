@@ -15,12 +15,13 @@ extern "C" {
 #include <iostream>
 
 
+// parse ISO 6709 geo location string without height (e.g. "+27.5916+086.5640+8850/")
 static int parseIso6709(const char *str, double &lat, double &lon) {
     if (!str || !*str) return -1;
 
     char *end = NULL;
     double latitude  = strtod(str, &end);
-    if (end == str) return -1;          // kein gültiger Start
+    if (end == str) return -1;
 
     double longitude = strtod(end, &end);
     if (end == str) return -1;

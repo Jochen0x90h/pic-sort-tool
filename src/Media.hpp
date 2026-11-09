@@ -2,6 +2,25 @@
 
 #include <chrono>
 
+/// @brief Rotate image orientation according to EXIF orientation tag.
+/// Check orientation of images: $ exiftool -G1 -a -Orientation <image>
+/// @param orientation EXIF orientation tag value (1-8)
+/// @param rotate 0: no rotation, 1: 90 degrees, 2: 180 degrees, 3: 270 degrees
+/// @param mirror 0: no mirroring, 1: mirror
+/// @return New EXIF orientation tag value (1-8)
+inline int rotateOrientation(int orientation, int rotate, int mirror) {
+    int o = orientation - 1;
+
+    int m = mirror ^ (o & 1) ^ (o >> 2);
+
+    o = (o >> 2) | (o & 2);
+    o = (o + rotate) & 3;
+    o = ((o << 2) & 4) | (o & 2);
+
+    o |= m ^ (o >> 2);
+
+    return o + 1;
+}
 
 struct MetaData {
     // creation time from file or meta data

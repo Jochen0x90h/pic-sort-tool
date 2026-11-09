@@ -395,21 +395,6 @@ MediaType getMediaType(fs::path const &path) {
         return MediaType::NONE;
 }
 
-int rotateOrientation(int rotate, int orientation) {
-    int o = orientation - 1;
-
-    int mirror = (o & 1) ^ (o >> 2);
-
-    o = (o >> 2) | (o & 2);
-    o = (o + rotate) & 3;
-    o = ((o << 2) & 4) | (o & 2);
-
-    o |= mirror ^ (o >> 2);
-
-    return o + 1;
-}
-
-
 // MainWindow
 
 class MainWindow : public GuiWindow {
@@ -552,6 +537,8 @@ protected:
 
                 // space: move image
                 if (key == ImGuiKey::ImGuiKey_Space /*&& (modifiers & GLFW_MOD_SHIFT) != 0*/) {
+                    //auto orientatoin = media_->getMetaData().orientation;
+
                     // clear media
                     delete media_;
                     media_ = nullptr;
@@ -563,19 +550,13 @@ protected:
                     fs::rename(src, dst);
 
                     // apply rotation
-                    if (rotate_ != 0) {
-                        auto image = Exiv2::ImageFactory::open(dst.string());
-                        image->readMetadata();
-                        auto& exif = image->exifData();
-                        exif["Exif.Image.Orientation"] = 1;
-                        if (exif.findKey(Exiv2::ExifKey("Exif.Thumbnail.Orientation")) != exif.end())
-                            exif["Exif.Thumbnail.Orientation"] = 1;
-                        image->writeMetadata();
+                    if (rotate_ != 0 || mirror_ != 0) {
+                        if (getMediaType(dst) == MediaType::PICTURE)
+                            Picture::rotate(dst, rotate_, mirror_);
                     }
 
                     // set date
                     fs::last_write_time(dst, utcTime_);
-
 
                     // erase from list
                     files_.erase(files_.begin() + fileIndex_);
@@ -589,6 +570,9 @@ protected:
                 } else if (key == ImGuiKey::ImGuiKey_R) {
                     // rotate
                     rotate_ = (rotate_ + 1) & 3;
+                } else if (key == ImGuiKey::ImGuiKey_M) {
+                    // mirror
+                    mirror_ ^= 1;
                 }
             }
         }
@@ -707,7 +691,7 @@ protected:
             ImGui::End();
 
             // rotate image
-            imageData.orientation = rotateOrientation(rotate_, imageData.orientation);
+            imageData.orientation = rotateOrientation(imageData.orientation, rotate_, mirror_);
 
             // render image
             image_.set(state.framebufferSize, imageData);
@@ -742,6 +726,7 @@ protected:
 
     // rotation of image (0, 90, 180, 270 degrees)
     int rotate_ = 0;
+    int mirror_ = 0;
 
     char8_t newDirectoryBuffer_[64];
 };
