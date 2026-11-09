@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <ranges>
 #include <errno.h>
+#include <exiv2/exiv2.hpp>
 
 
 namespace fs = std::filesystem;
@@ -253,11 +254,11 @@ public:
                 mat[0][1] = -m11;
                 break;
             case 7:
-                mat[1][0] = -m00;
+                mat[1][0] = m00;
                 mat[0][1] = m11;
                 break;
             default:
-                mat[1][0] = m00;
+                mat[1][0] = -m00;
                 mat[0][1] = m11;
             }
         }
@@ -394,6 +395,21 @@ MediaType getMediaType(fs::path const &path) {
         return MediaType::NONE;
 }
 
+int rotateOrientation(int rotate, int orientation) {
+    int o = orientation - 1;
+
+    int mirror = (o & 1) ^ (o >> 2);
+
+    o = (o >> 2) | (o & 2);
+    o = (o + rotate) & 3;
+    o = ((o << 2) & 4) | (o & 2);
+
+    o |= mirror ^ (o >> 2);
+
+    return o + 1;
+}
+
+
 // MainWindow
 
 class MainWindow : public GuiWindow {
@@ -526,6 +542,7 @@ protected:
                 if (next || prev) {
                     int count = int(files_.size());
                     fileIndex_ = (fileIndex_ + (next ? 1 : count - 1)) % count;
+                    rotate_ = 0;
 
                     // show next/previous picture
                     loadMedia(files_[fileIndex_]);
@@ -533,29 +550,45 @@ protected:
                     return true;
                 }
 
-                // shift-space: move image
+                // space: move image
                 if (key == ImGuiKey::ImGuiKey_Space /*&& (modifiers & GLFW_MOD_SHIFT) != 0*/) {
+                    // clear media
+                    delete media_;
+                    media_ = nullptr;
+
                     fs::path src = files_[fileIndex_];
                     fs::path dst = targetDir_ / src.filename();
+
+                    // move file
                     fs::rename(src, dst);
+
+                    // apply rotation
+                    if (rotate_ != 0) {
+                        auto image = Exiv2::ImageFactory::open(dst.string());
+                        image->readMetadata();
+                        auto& exif = image->exifData();
+                        exif["Exif.Image.Orientation"] = 1;
+                        if (exif.findKey(Exiv2::ExifKey("Exif.Thumbnail.Orientation")) != exif.end())
+                            exif["Exif.Thumbnail.Orientation"] = 1;
+                        image->writeMetadata();
+                    }
 
                     // set date
                     fs::last_write_time(dst, utcTime_);
+
 
                     // erase from list
                     files_.erase(files_.begin() + fileIndex_);
                     fileIndex_ = std::min(fileIndex_, int(files_.size()) - 1);
 
                     // show next picture
-                    if (!files_.empty()) {
+                    if (!files_.empty())
                         loadMedia(files_[fileIndex_]);
-                    } else {
-                        // clear media
-                        delete media_;
-                        media_ = nullptr;
-                    }
 
                     return true;
+                } else if (key == ImGuiKey::ImGuiKey_R) {
+                    // rotate
+                    rotate_ = (rotate_ + 1) & 3;
                 }
             }
         }
@@ -673,6 +706,8 @@ protected:
             }
             ImGui::End();
 
+            // rotate image
+            imageData.orientation = rotateOrientation(rotate_, imageData.orientation);
 
             // render image
             image_.set(state.framebufferSize, imageData);
@@ -705,14 +740,18 @@ protected:
     // image that is rendered onto the screen
     Image image_;
 
+    // rotation of image (0, 90, 180, 270 degrees)
+    int rotate_ = 0;
+
     char8_t newDirectoryBuffer_[64];
 };
 
 
-/// Usage: picsort.exe [timeShift] [dstType]
+/// Usage: pic=sort-tool.exe [timeShift] [dstType]
 ///   timeShift: Time shift of local time to UTC in hours (e.g., Berlin: 1, Las Vegas: -8)
 ///   dstType: Daylight saving time type (NONE, EU, US)
 /// Example: picsort.exe 1 EU
+/// There must be images in the current working directory
 int main(int argc, const char **argv) {
     int timeShift = 0;
     DstType dstType = DstType::NONE;

@@ -26,6 +26,7 @@ target_link_libraries(pic-sort-tool
         libjpeg-turbo::turbojpeg-static
         tinyxml2::tinyxml2
         ffmpeg::ffmpeg
+        exiv2::exiv2
 )
 if(WIN32)
     target_link_libraries(pic-sort-tool

@@ -43,12 +43,12 @@ class Project(ConanFile):
     exports_sources = "conanfile.py", "CMakeLists.txt", "src/*", "test/*"
     requires = [
         "glfw/3.4",
-        "imgui/1.92.8",
+        "imgui/1.92.9b",
         "libjpeg-turbo/3.2.0",
         "tinyxml2/11.0.0",
-        "ffmpeg/8.1.2"
+        "ffmpeg/9.0.2",
+        "exiv2/0.28.3"
     ]
-
 
     keep_imports = True
     def imports(self):

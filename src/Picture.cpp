@@ -46,6 +46,11 @@ Picture::Picture(const fs::path &path) {
             meta.longitude = exif.GeoLocation.Longitude;
         }
     }
+    if (meta.time == std::chrono::time_point<std::chrono::file_clock>()) {
+        // no date/time in exif, use file time
+        meta.time = fs::last_write_time(path);
+        meta.localTime = false;
+    }
 
     // init decompressor
     tjhandle tjInstance = NULL;int selectedTarget = -1;

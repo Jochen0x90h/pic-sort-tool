@@ -17,6 +17,7 @@ find_package(JPEG REQUIRED)
 find_package(libjpeg-turbo CONFIG REQUIRED)
 find_package(tinyxml2 CONFIG REQUIRED)
 find_package(ffmpeg CONFIG REQUIRED)
+find_package(exiv2 CONFIG REQUIRED)
 
 add_subdirectory(src)
 

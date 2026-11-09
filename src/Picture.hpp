@@ -26,7 +26,7 @@ protected:
 
     int width_;
     int height_;
-    int orientation_ = 0;
+    int orientation_ = 1;
     unsigned char *imgBuf_ = nullptr;
 
     MetaData metaData_;
