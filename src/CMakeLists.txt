@@ -12,8 +12,6 @@ add_executable(pic-sort-tool
     pic-sort-tool.cpp
     Picture.cpp
     Picture.hpp
-    #TinyEXIF.cpp
-    #TinyEXIF.h
     Video.cpp
     Video.hpp
 )
@@ -22,9 +20,7 @@ target_link_libraries(pic-sort-tool
         glfw
         imgui::imgui
         JPEG::JPEG
-        #libjpeg-turbo::turbojpeg
         libjpeg-turbo::turbojpeg-static
-        #tinyxml2::tinyxml2
         ffmpeg::ffmpeg
         exiv2::exiv2
 )
@@ -38,12 +34,9 @@ endif()
 # pic-date-tool: Command line tool for fixing the file date from exif data
 add_executable(pic-date-tool
     pic-date-tool.cpp
-    #TinyEXIF.cpp
-    #TinyEXIF.h
 )
 target_link_libraries(pic-date-tool
     PRIVATE
-        #tinyxml2::tinyxml2
         exiv2::exiv2
 )
 

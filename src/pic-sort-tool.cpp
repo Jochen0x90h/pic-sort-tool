@@ -521,23 +521,36 @@ protected:
             }
 
             if (!neededByGui && !files_.empty()) {
-                // up/down: select next/pevious image
-                bool next = key == ImGuiKey::ImGuiKey_DownArrow || key == ImGuiKey::ImGuiKey_RightArrow;
-                bool prev = key == ImGuiKey::ImGuiKey_UpArrow || key == ImGuiKey::ImGuiKey_LeftArrow;
-                if (next || prev) {
-                    int count = int(files_.size());
-                    fileIndex_ = (fileIndex_ + (next ? 1 : count - 1)) % count;
+                // select next/pevious image
+                int step = 0;
+                int count = int(files_.size());
+                if (key == ImGuiKey::ImGuiKey_DownArrow || key == ImGuiKey::ImGuiKey_RightArrow)
+                    step = 1;
+                else if (key == ImGuiKey::ImGuiKey_UpArrow || key == ImGuiKey::ImGuiKey_LeftArrow)
+                    step = -1;
+                else if (key == ImGuiKey::ImGuiKey_PageDown)
+                    step = 10;
+                else if (key == ImGuiKey::ImGuiKey_PageUp)
+                    step = -10;
+                else if (key == ImGuiKey::ImGuiKey_Home)
+                    step = -fileIndex_;
+                else if (key == ImGuiKey::ImGuiKey_End)
+                    step = count - fileIndex_ - 1;
+                if (step != 0) {
+                    if (step > count)
+                        step = count;
+                    else if (step < -count)
+                        step = -count;
+                    fileIndex_ = (fileIndex_ + count + step) % count;
                     rotate_ = 0;
+                    mirror_ = 0;
 
                     // show next/previous picture
                     loadMedia(files_[fileIndex_]);
 
                     return true;
-                }
-
-                // space: move image
-                if (key == ImGuiKey::ImGuiKey_Space /*&& (modifiers & GLFW_MOD_SHIFT) != 0*/) {
-                    //auto orientatoin = media_->getMetaData().orientation;
+                } if (key == ImGuiKey::ImGuiKey_Space /*&& (modifiers & GLFW_MOD_SHIFT) != 0*/) {
+                    // space: move image
 
                     // clear media
                     delete media_;

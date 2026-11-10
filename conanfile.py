@@ -45,7 +45,6 @@ class Project(ConanFile):
         "glfw/3.4",
         "imgui/1.92.9b",
         "libjpeg-turbo/3.2.0",
-        #"tinyxml2/11.0.0",
         "ffmpeg/9.0.2",
         "exiv2/0.28.3"
     ]

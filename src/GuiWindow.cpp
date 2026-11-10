@@ -29,7 +29,8 @@ static void setClipboardText(void *user_data, const char* text) {
 }
 
 // https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_glfw.cpp
-ImGuiKey glfw2ImGuiKey(int keycode) {
+ImGuiKey glfw2ImGuiKey(int keycode, int modifiers) {
+    bool numLock = (modifiers & GLFW_MOD_NUM_LOCK) != 0;
     switch (keycode) {
     case GLFW_KEY_TAB: return ImGuiKey_Tab;
     case GLFW_KEY_LEFT: return ImGuiKey_LeftArrow;
@@ -63,15 +64,15 @@ ImGuiKey glfw2ImGuiKey(int keycode) {
     case GLFW_KEY_PRINT_SCREEN: return ImGuiKey_PrintScreen;
     case GLFW_KEY_PAUSE: return ImGuiKey_Pause;
     case GLFW_KEY_KP_0: return ImGuiKey_Keypad0;
-    case GLFW_KEY_KP_1: return ImGuiKey_Keypad1;
+    case GLFW_KEY_KP_1: return numLock ? ImGuiKey_Keypad1 : ImGuiKey_End;
     case GLFW_KEY_KP_2: return ImGuiKey_Keypad2;
-    case GLFW_KEY_KP_3: return ImGuiKey_Keypad3;
+    case GLFW_KEY_KP_3: return numLock ? ImGuiKey_Keypad3 : ImGuiKey_PageDown;
     case GLFW_KEY_KP_4: return ImGuiKey_Keypad4;
     case GLFW_KEY_KP_5: return ImGuiKey_Keypad5;
     case GLFW_KEY_KP_6: return ImGuiKey_Keypad6;
-    case GLFW_KEY_KP_7: return ImGuiKey_Keypad7;
+    case GLFW_KEY_KP_7: return numLock ? ImGuiKey_Keypad7 : ImGuiKey_Home;
     case GLFW_KEY_KP_8: return ImGuiKey_Keypad8;
-    case GLFW_KEY_KP_9: return ImGuiKey_Keypad9;
+    case GLFW_KEY_KP_9: return numLock ? ImGuiKey_Keypad9 : ImGuiKey_PageUp;
     case GLFW_KEY_KP_DECIMAL: return ImGuiKey_KeypadDecimal;
     case GLFW_KEY_KP_DIVIDE: return ImGuiKey_KeypadDivide;
     case GLFW_KEY_KP_MULTIPLY: return ImGuiKey_KeypadMultiply;
@@ -158,7 +159,7 @@ void GuiWindow::keyCallback(GLFWwindow* w, int keycode, int scancode, int action
     ImGuiIO &io = ImGui::GetIO();
 
     // ImGui_ImplGlfw_KeyCallback in https://github.com/ocornut/imgui/blob/master/backends/imgui_impl_glfw.cpp
-    ImGuiKey key = glfw2ImGuiKey(keycode);
+    ImGuiKey key = glfw2ImGuiKey(keycode, modifiers);
 
     // call user code
     if (!window->onKey(key, scancode, action, modifiers, io.WantCaptureKeyboard)) {
